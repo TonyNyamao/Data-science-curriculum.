@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQL for E-commerce — Mentorship Curriculum</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ── */
+    :root {
+      --bg:        #0d0d0d;
+      --surface:   #141414;
+      --surface2:  #1c1c1c;
+      --border:    #2a2a2a;
+      --border2:   #383838;
+      --text:      #e8e3d9;
+      --muted:     #7a7570;
+      --accent:    #c8f060;
+      --accent2:   #60c8f0;
+      --amber:     #f0c060;
+      --coral:     #f07060;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'DM Sans', sans-serif;
+      --display:   'Syne', sans-serif;
+      --radius:    8px;
+      --radius-lg: 14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ── */
+    .page { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+    /* ── Header ── */
+    header {
+      padding: 3rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .header-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .header-label span {
+      display: inline-block;
+      background: rgba(200,240,96,0.1);
+      border: 1px solid rgba(200,240,96,0.25);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+    h1 em { font-style: normal; color: var(--accent); }
+    .header-desc { color: var(--muted); max-width: 560px; font-size: 15px; line-height: 1.7; }
+
+    /* ── Meta grid ── */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 2rem 0;
+    }
+    .meta-cell {
+      background: var(--surface);
+      padding: 1rem 1.25rem;
+    }
+    .meta-cell .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .meta-cell .value { font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--text); }
+    .meta-cell .value.accent { color: var(--accent); }
+
+    /* ── Schema section ── */
+    .schema-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+    .schema-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .schema-header-left { display: flex; align-items: center; gap: 10px; }
+    .schema-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .schema-header h2 { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; font-weight: 400; }
+    .schema-toggle { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    .schema-body { padding: 1.25rem; display: none; }
+    .schema-body.open { display: block; }
+    .schema-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .schema-table {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .schema-table-name {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent2);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(96,200,240,0.06);
+    }
+    .schema-fields { padding: 8px 12px; }
+    .schema-field {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      padding: 2px 0;
+      display: flex;
+      gap: 8px;
+    }
+    .field-name { color: var(--text); }
+    .field-pk { color: var(--amber); font-size: 10px; }
+    .field-fk { color: var(--accent); font-size: 10px; }
+
+    /* ── Progress bar ── */
+    .progress-wrap { margin-bottom: 2.5rem; }
+    .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .progress-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+    .progress-count { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+    .progress-track {
+      height: 4px;
+      background: var(--surface2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.5s cubic-bezier(.4,0,.2,1);
+      width: 0%;
+    }
+
+    /* ── Phase nav ── */
+    .phase-nav {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .phase-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      padding: 6px 14px;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .15s ease;
+      white-space: nowrap;
+    }
+    .phase-btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+    .phase-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,240,96,0.08); }
+    .phase-btn .done-count { color: var(--accent); }
+
+    /* ── Phase content ── */
+    .phase-meta { margin-bottom: 1.5rem; }
+    .phase-name { font-family: var(--display); font-size: 1.5rem; font-weight: 600; margin-bottom: 6px; }
+    .phase-desc { color: var(--muted); font-size: 14px; max-width: 620px; line-height: 1.7; }
+
+    .project-banner {
+      border-left: 3px solid var(--amber);
+      background: rgba(240,192,96,0.06);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 12px 16px;
+      margin-bottom: 1.5rem;
+      font-size: 13px;
+      color: var(--amber);
+      line-height: 1.6;
+    }
+
+    /* ── Question cards ── */
+    .q-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .q-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: border-color .2s ease;
+    }
+    .q-card:hover { border-color: var(--border2); }
+    .q-card.done { border-color: rgba(200,240,96,0.35); }
+
+    .q-inner { padding: 1rem 1.25rem; display: flex; gap: 14px; align-items: flex-start; }
+
+    .q-num {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      font-family: var(--mono);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .q-card.done .q-num {
+      background: rgba(200,240,96,0.1);
+      border-color: rgba(200,240,96,0.4);
+      color: var(--accent);
+    }
+
+    .q-body { flex: 1; min-width: 0; }
+
+    .q-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid;
+    }
+    .tag-concept { color: var(--accent2); border-color: rgba(96,200,240,0.3); background: rgba(96,200,240,0.06); }
+    .tag-easy    { color: #9acf7a; border-color: rgba(154,207,122,0.3); background: rgba(154,207,122,0.05); }
+    .tag-medium  { color: var(--amber); border-color: rgba(240,192,96,0.3); background: rgba(240,192,96,0.05); }
+    .tag-hard    { color: var(--coral); border-color: rgba(240,112,96,0.3); background: rgba(240,112,96,0.05); }
+    .tag-project { color: var(--amber); border-color: rgba(240,192,96,0.4); background: rgba(240,192,96,0.07); }
+
+    .q-text { font-size: 14px; line-height: 1.65; margin-bottom: 10px; color: var(--text); }
+
+    .q-actions { display: flex; align-items: center; gap: 10px; }
+
+    .btn-hint {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-hint:hover { color: var(--text); border-color: var(--border2); background: var(--surface2); }
+
+    .btn-done {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      cursor: pointer;
+      transition: all .15s;
+      margin-left: auto;
+    }
+    .btn-done:hover { color: var(--accent); border-color: rgba(200,240,96,0.4); }
+    .q-card.done .btn-done {
+      color: var(--accent);
+      border-color: rgba(200,240,96,0.4);
+      background: rgba(200,240,96,0.06);
+    }
+
+    .hint-box {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.8;
+      color: var(--muted);
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      white-space: pre-wrap;
+      display: none;
+    }
+    .hint-box.open {
+      display: block;
+      animation: slideDown .18s ease;
+    }
+    .hint-box .kw { color: var(--accent2); }
+    .hint-box .fn { color: var(--amber); }
+    .hint-box .cm { color: #4a5568; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── How to use section ── */
+    .howto {
+      margin-top: 3rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+    }
+    .howto h2 {
+      font-family: var(--display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .howto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .howto-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.1rem;
+    }
+    .howto-step {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .howto-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 4rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .phase-nav { gap: 4px; }
+      .phase-btn { font-size: 10px; padding: 5px 10px; }
+      h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="header-label"><span>Mentorship Curriculum</span></div>
+    <h1>SQL for <em>E-commerce</em></h1>
+    <p class="header-desc">
+      A structured, project-driven SQL curriculum. Five phases, 30 questions,
+      one consistent e-commerce schema — from your first SELECT to a full analytics dashboard.
+    </p>
+
+    <div class="meta-grid">
+      <div class="meta-cell">
+        <div class="label">Phases</div>
+        <div class="value accent">5</div>
+      </div>
+      <div class="meta-cell">
+        <div class="label">Questions</div>
+        <div class="value accent">30</div>
+      </div>
+      <div class="meta-cell">
+        <div class="label">Dialect</div>
+        <div class="value" style="font-size:16px;">MySQL / MariaDB</div>
+      </div>
+      <div class="meta-cell">
+        <div class="label">Final project</div>
+        <div class="value" style="font-size:15px;">Analytics Dashboard</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── SCHEMA ── -->
+  <div class="schema-section">
+    <div class="schema-header" onclick="toggleSchema()">
+      <div class="schema-header-left">
+        <div class="schema-dot"></div>
+        <h2>E-commerce schema — used throughout all phases</h2>
+      </div>
+      <span class="schema-toggle" id="schema-toggle-txt">[ expand ]</span>
+    </div>
+    <div class="schema-body" id="schema-body">
+      <div class="schema-tables">
+
+        <div class="schema-table">
+          <div class="schema-table-name">customers</div>
+          <div class="schema-fields">
+            <div class="schema-field"><span class="field-name">id</span><span class="field-pk">PK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">name</span><span>VARCHAR(100)</span></div>
+            <div class="schema-field"><span class="field-name">email</span><span>VARCHAR(150)</span></div>
+            <div class="schema-field"><span class="field-name">city</span><span>VARCHAR(80)</span></div>
+            <div class="schema-field"><span class="field-name">created_at</span><span>DATETIME</span></div>
+          </div>
+        </div>
+
+        <div class="schema-table">
+          <div class="schema-table-name">products</div>
+          <div class="schema-fields">
+            <div class="schema-field"><span class="field-name">id</span><span class="field-pk">PK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">name</span><span>VARCHAR(120)</span></div>
+            <div class="schema-field"><span class="field-name">category</span><span>VARCHAR(60)</span></div>
+            <div class="schema-field"><span class="field-name">price</span><span>DECIMAL(10,2)</span></div>
+            <div class="schema-field"><span class="field-name">stock_qty</span><span>INT</span></div>
+          </div>
+        </div>
+
+        <div class="schema-table">
+          <div class="schema-table-name">orders</div>
+          <div class="schema-fields">
+            <div class="schema-field"><span class="field-name">id</span><span class="field-pk">PK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">customer_id</span><span class="field-fk">FK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">order_date</span><span>DATETIME</span></div>
+            <div class="schema-field"><span class="field-name">status</span><span>ENUM</span></div>
+            <div class="schema-field"><span class="field-name">total_amount</span><span>DECIMAL(12,2)</span></div>
+          </div>
+        </div>
+
+        <div class="schema-table">
+          <div class="schema-table-name">order_items</div>
+          <div class="schema-fields">
+            <div class="schema-field"><span class="field-name">id</span><span class="field-pk">PK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">order_id</span><span class="field-fk">FK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">product_id</span><span class="field-fk">FK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">quantity</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">unit_price</span><span>DECIMAL(10,2)</span></div>
+          </div>
+        </div>
+
+        <div class="schema-table">
+          <div class="schema-table-name">reviews</div>
+          <div class="schema-fields">
+            <div class="schema-field"><span class="field-name">id</span><span class="field-pk">PK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">customer_id</span><span class="field-fk">FK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">product_id</span><span class="field-fk">FK</span><span>INT</span></div>
+            <div class="schema-field"><span class="field-name">rating</span><span>TINYINT (1–5)</span></div>
+            <div class="schema-field"><span class="field-name">review_date</span><span>DATETIME</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PROGRESS ── -->
+  <div class="progress-wrap">
+    <div class="progress-top">
+      <span class="progress-title">Overall progress</span>
+      <span class="progress-count" id="prog-count">0 / 30</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+  </div>
+
+  <!-- ── PHASE NAV ── -->
+  <div class="phase-nav" id="phase-nav"></div>
+
+  <!-- ── PHASE CONTENT ── -->
+  <div id="phase-content"></div>
+
+  <!-- ── HOW TO USE ── -->
+  <div class="howto">
+    <h2>Mentor guide — how to use this</h2>
+    <div class="howto-grid">
+      <div class="howto-card">
+        <div class="howto-step">Step 01</div>
+        <div class="howto-text">Student attempts each query independently before revealing the hint. The attempt — even if wrong — is the learning moment.</div>
+      </div>
+      <div class="howto-card">
+        <div class="howto-step">Step 02</div>
+        <div class="howto-text">Debug together. Ask the student to explain each clause. Confusion on WHERE vs HAVING, or JOIN type, surfaces naturally.</div>
+      </div>
+      <div class="howto-card">
+        <div class="howto-step">Step 03</div>
+        <div class="howto-text">For JOIN questions, have the student draw the table relationships on paper first. Visual mapping prevents most mistakes.</div>
+      </div>
+      <div class="howto-card">
+        <div class="howto-step">Step 04</div>
+        <div class="howto-text">Phase 5 is a project presentation. Each query is a dashboard deliverable. Student should explain what it means for the business, not just that it runs.</div>
+      </div>
+      <div class="howto-card">
+        <div class="howto-step">PostgreSQL?</div>
+        <div class="howto-text">Replace DATE_FORMAT(…) with TO_CHAR(…,'YYYY-MM') and CURDATE() with CURRENT_DATE. All logic is otherwise identical.</div>
+      </div>
+      <div class="howto-card">
+        <div class="howto-step">Progress</div>
+        <div class="howto-text">Completion state is saved in your browser's sessionStorage and persists across page refreshes during the same session.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>SQL for E-commerce — Mentorship Curriculum</span>
+    <span>MySQL / MariaDB · 5 phases · 30 questions</span>
+  </footer>
+
+</div><!-- /.page -->
+
+<script>
+/* ── Data ── */
+const phases = [
+  {
+    label: "Phase 1",
+    sublabel: "Foundations",
+    title: "Phase 1: Foundations",
+    desc: "SELECT, WHERE, ORDER BY, LIMIT. Get comfortable reading data from a single table — this is the base everything else is built on.",
+    questions: [
+      { text: "Retrieve the name and email of all customers who signed up in 2024.", concept: "SELECT + WHERE + date filter", diff: "Easy",
+        hint: "SELECT name, email\nFROM customers\nWHERE created_at >= '2024-01-01'\n  AND created_at < '2025-01-01';" },
+      { text: "List all products in the 'Electronics' category, sorted by price from highest to lowest.", concept: "SELECT + WHERE + ORDER BY", diff: "Easy",
+        hint: "SELECT *\nFROM products\nWHERE category = 'Electronics'\nORDER BY price DESC;" },
+      { text: "Show the 5 most recently placed orders — include customer_id, order_date, and status.", concept: "ORDER BY + LIMIT", diff: "Easy",
+        hint: "SELECT customer_id, order_date, status\nFROM orders\nORDER BY order_date DESC\nLIMIT 5;" },
+      { text: "Find all orders where status is either 'pending' or 'processing'.", concept: "WHERE + IN", diff: "Easy",
+        hint: "SELECT *\nFROM orders\nWHERE status IN ('pending', 'processing');" },
+      { text: "List all products where stock_qty is below 10, sorted by stock_qty ascending — this is a low-stock alert.", concept: "WHERE + ORDER BY", diff: "Easy",
+        hint: "SELECT name, stock_qty\nFROM products\nWHERE stock_qty < 10\nORDER BY stock_qty ASC;" },
+      { text: "Find all customers from 'Nairobi' whose email contains 'gmail'. Display name and email only.", concept: "WHERE + LIKE + AND", diff: "Easy",
+        hint: "SELECT name, email\nFROM customers\nWHERE city = 'Nairobi'\n  AND email LIKE '%gmail%';" },
+    ]
+  },
+  {
+    label: "Phase 2",
+    sublabel: "Aggregation",
+    title: "Phase 2: Aggregation & Grouping",
+    desc: "COUNT, SUM, AVG, GROUP BY, HAVING. Learn to summarize data — the foundation of every business report and dashboard.",
+    questions: [
+      { text: "Count how many customers are in each city. Show city and customer_count, ordered by count descending.", concept: "COUNT + GROUP BY", diff: "Medium",
+        hint: "SELECT city, COUNT(*) AS customer_count\nFROM customers\nGROUP BY city\nORDER BY customer_count DESC;" },
+      { text: "Calculate the total revenue (SUM of total_amount) for each month in 2024.", concept: "SUM + GROUP BY + date", diff: "Medium",
+        hint: "SELECT DATE_FORMAT(order_date, '%Y-%m') AS month,\n       SUM(total_amount) AS monthly_revenue\nFROM orders\nWHERE YEAR(order_date) = 2024\nGROUP BY month\nORDER BY month;" },
+      { text: "Find the average rating per product. Only show products that have at least 5 reviews.", concept: "AVG + GROUP BY + HAVING", diff: "Medium",
+        hint: "SELECT product_id,\n       AVG(rating)  AS avg_rating,\n       COUNT(*)     AS review_count\nFROM reviews\nGROUP BY product_id\nHAVING COUNT(*) >= 5;" },
+      { text: "Find the total quantity sold per product across all order_items.", concept: "SUM + GROUP BY", diff: "Medium",
+        hint: "SELECT product_id, SUM(quantity) AS total_sold\nFROM order_items\nGROUP BY product_id\nORDER BY total_sold DESC;" },
+      { text: "How many orders were placed each day of the week (Mon–Sun)? Show day name and order count.", concept: "GROUP BY + DAYNAME", diff: "Medium",
+        hint: "SELECT DAYNAME(order_date)   AS day_name,\n       COUNT(*)                AS order_count\nFROM orders\nGROUP BY DAYNAME(order_date), WEEKDAY(order_date)\nORDER BY WEEKDAY(order_date);" },
+      { text: "Show each order status and its percentage share of all orders (e.g. 'completed' = 65.3%).", concept: "COUNT + subquery for total", diff: "Hard",
+        hint: "SELECT status,\n       COUNT(*) AS cnt,\n       ROUND(\n         COUNT(*) * 100.0\n         / (SELECT COUNT(*) FROM orders),\n       1) AS pct\nFROM orders\nGROUP BY status;" },
+    ]
+  },
+  {
+    label: "Phase 3",
+    sublabel: "JOINs",
+    title: "Phase 3: JOINs",
+    desc: "INNER JOIN, LEFT JOIN, and multi-table joins. Link the schema together to answer real business questions across multiple tables.",
+    questions: [
+      { text: "List each order with the customer's name, order date, and status. Sort by order date descending.", concept: "INNER JOIN (orders ↔ customers)", diff: "Medium",
+        hint: "SELECT c.name, o.order_date, o.status\nFROM orders o\nJOIN customers c ON o.customer_id = c.id\nORDER BY o.order_date DESC;" },
+      { text: "Show each order_item with the product name, quantity, and line total (quantity × unit_price).", concept: "JOIN + computed column", diff: "Medium",
+        hint: "SELECT p.name,\n       oi.quantity,\n       oi.unit_price,\n       oi.quantity * oi.unit_price AS line_total\nFROM order_items oi\nJOIN products p ON oi.product_id = p.id;" },
+      { text: "Find all customers who have NEVER placed an order.", concept: "LEFT JOIN + IS NULL", diff: "Medium",
+        hint: "SELECT c.name, c.email\nFROM customers c\nLEFT JOIN orders o ON c.id = o.customer_id\nWHERE o.id IS NULL;" },
+      { text: "For each product, show its name, category, total units sold, and total revenue generated.", concept: "JOIN + SUM + GROUP BY (3 tables)", diff: "Hard",
+        hint: "SELECT p.name, p.category,\n       SUM(oi.quantity)                  AS units_sold,\n       SUM(oi.quantity * oi.unit_price)   AS revenue\nFROM products p\nJOIN order_items oi ON p.id = oi.product_id\nGROUP BY p.id, p.name, p.category\nORDER BY revenue DESC;" },
+      { text: "Show the top 10 customers by total spend, including their city.", concept: "JOIN + SUM + ORDER BY + LIMIT", diff: "Hard",
+        hint: "SELECT c.name, c.city,\n       SUM(o.total_amount) AS total_spend\nFROM customers c\nJOIN orders o ON c.id = o.customer_id\nGROUP BY c.id, c.name, c.city\nORDER BY total_spend DESC\nLIMIT 10;" },
+      { text: "For each order, list the customer name, number of distinct products in the order, and the order total.", concept: "JOIN + COUNT(DISTINCT) + SUM", diff: "Hard",
+        hint: "SELECT c.name,\n       o.id                             AS order_id,\n       COUNT(DISTINCT oi.product_id)    AS distinct_products,\n       SUM(oi.quantity * oi.unit_price) AS order_total\nFROM orders o\nJOIN customers c  ON o.customer_id = c.id\nJOIN order_items oi ON o.id = oi.order_id\nGROUP BY o.id, c.name;" },
+    ]
+  },
+  {
+    label: "Phase 4",
+    sublabel: "Subqueries & CTEs",
+    title: "Phase 4: Subqueries & CTEs",
+    desc: "Correlated subqueries, WITH clauses, window functions. Break complex problems into readable, composable steps.",
+    questions: [
+      { text: "Find all products whose price is above the average price of all products.", concept: "Subquery in WHERE", diff: "Medium",
+        hint: "SELECT name, price\nFROM products\nWHERE price > (SELECT AVG(price) FROM products)\nORDER BY price DESC;" },
+      { text: "Using a CTE, calculate monthly revenue for 2024, then show only months where revenue exceeded KES 500,000.", concept: "CTE + HAVING on derived data", diff: "Hard",
+        hint: "WITH monthly AS (\n  SELECT DATE_FORMAT(order_date, '%Y-%m') AS mo,\n         SUM(total_amount)               AS revenue\n  FROM orders\n  WHERE YEAR(order_date) = 2024\n  GROUP BY mo\n)\nSELECT * FROM monthly\nWHERE revenue > 500000;" },
+      { text: "For each customer, show their most recent order date and the status of that order.", concept: "CTE + ROW_NUMBER() window", diff: "Hard",
+        hint: "WITH ranked AS (\n  SELECT customer_id, order_date, status,\n    ROW_NUMBER() OVER (\n      PARTITION BY customer_id\n      ORDER BY order_date DESC\n    ) AS rn\n  FROM orders\n)\nSELECT c.name, r.order_date, r.status\nFROM ranked r\nJOIN customers c ON r.customer_id = c.id\nWHERE r.rn = 1;" },
+      { text: "Find products that have been ordered but have never received any review.", concept: "NOT IN / NOT EXISTS subquery", diff: "Hard",
+        hint: "SELECT DISTINCT p.name\nFROM products p\nJOIN order_items oi ON p.id = oi.product_id\nWHERE p.id NOT IN (\n  SELECT DISTINCT product_id FROM reviews\n);" },
+      { text: "Using CTEs, rank customers by total spend within each city. Show the top 3 per city.", concept: "CTE + RANK() OVER (PARTITION BY)", diff: "Hard",
+        hint: "WITH spend AS (\n  SELECT c.id, c.name, c.city,\n         SUM(o.total_amount) AS total_spend\n  FROM customers c\n  JOIN orders o ON c.id = o.customer_id\n  GROUP BY c.id, c.name, c.city\n),\nranked AS (\n  SELECT *,\n    RANK() OVER (\n      PARTITION BY city\n      ORDER BY total_spend DESC\n    ) AS rnk\n  FROM spend\n)\nSELECT * FROM ranked WHERE rnk <= 3;" },
+      { text: "Identify 'repeat buyers' — customers who placed more than one order in the same calendar month, at least once.", concept: "CTE + GROUP BY month + HAVING", diff: "Hard",
+        hint: "WITH monthly_orders AS (\n  SELECT customer_id,\n         DATE_FORMAT(order_date, '%Y-%m') AS mo,\n         COUNT(*) AS cnt\n  FROM orders\n  GROUP BY customer_id, mo\n  HAVING cnt > 1\n)\nSELECT DISTINCT c.name, c.email\nFROM customers c\nJOIN monthly_orders mo ON c.id = mo.customer_id;" },
+    ]
+  },
+  {
+    label: "Phase 5",
+    sublabel: "Final Project",
+    isProject: true,
+    title: "Phase 5: Final Project — E-commerce Analytics Dashboard",
+    desc: "Six integrated queries that together form a real analytics dashboard. Each one is a standalone deliverable the student presents and explains to the mentor.",
+    questions: [
+      { text: "SALES OVERVIEW — Return total orders, total revenue, average order value, and unique customers for a given date range.", concept: "KPI summary card", diff: "Project",
+        hint: "SELECT\n  COUNT(DISTINCT id)          AS total_orders,\n  SUM(total_amount)            AS total_revenue,\n  ROUND(AVG(total_amount), 2)  AS avg_order_value,\n  COUNT(DISTINCT customer_id)  AS unique_customers\nFROM orders\nWHERE order_date BETWEEN '2024-01-01' AND '2024-12-31';" },
+      { text: "TOP PRODUCTS — Leaderboard of the top 10 products by revenue: name, category, units sold, total revenue, average review rating.", concept: "Multi-table JOIN + aggregation", diff: "Project",
+        hint: "SELECT p.name, p.category,\n       SUM(oi.quantity)                  AS units_sold,\n       SUM(oi.quantity * oi.unit_price)   AS revenue,\n       ROUND(AVG(r.rating), 1)            AS avg_rating\nFROM products p\nJOIN order_items oi ON p.id = oi.product_id\nLEFT JOIN reviews r ON p.id = r.product_id\nGROUP BY p.id, p.name, p.category\nORDER BY revenue DESC\nLIMIT 10;" },
+      { text: "CUSTOMER SEGMENTS — Classify customers into 'High Value' (spend > 10 000), 'Mid Value' (1 000–10 000), 'Low Value' (< 1 000). Show count and total spend per segment.", concept: "CASE + segmentation + GROUP BY", diff: "Project",
+        hint: "WITH spend AS (\n  SELECT customer_id,\n         SUM(total_amount) AS total\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT\n  CASE\n    WHEN total > 10000  THEN 'High Value'\n    WHEN total >= 1000  THEN 'Mid Value'\n    ELSE                     'Low Value'\n  END              AS segment,\n  COUNT(*)         AS customers,\n  SUM(total)       AS total_spend\nFROM spend\nGROUP BY segment;" },
+      { text: "MONTHLY TREND — Month-over-month revenue growth: current month revenue, prior month revenue, and % change.", concept: "LAG() window function + MoM growth", diff: "Project",
+        hint: "WITH monthly AS (\n  SELECT DATE_FORMAT(order_date, '%Y-%m') AS mo,\n         SUM(total_amount)               AS revenue\n  FROM orders\n  GROUP BY mo\n)\nSELECT mo,\n       revenue,\n       LAG(revenue) OVER (ORDER BY mo)  AS prev_revenue,\n       ROUND(\n         (revenue - LAG(revenue) OVER (ORDER BY mo))\n         / LAG(revenue) OVER (ORDER BY mo) * 100,\n       1) AS pct_change\nFROM monthly;" },
+      { text: "INVENTORY ALERT — Products with stock_qty < 20 that were also sold in the last 30 days. Show name, stock level, and units sold in that window.", concept: "JOIN + subquery + business logic", diff: "Project",
+        hint: "SELECT p.name,\n       p.stock_qty,\n       SUM(oi.quantity) AS sold_last_30d\nFROM products p\nJOIN order_items oi ON p.id  = oi.product_id\nJOIN orders o       ON oi.order_id = o.id\nWHERE p.stock_qty < 20\n  AND o.order_date >= CURDATE() - INTERVAL 30 DAY\nGROUP BY p.id, p.name, p.stock_qty;" },
+      { text: "CHURN RISK — Customers who ordered at least once but have NOT ordered in the last 90 days. Show name, last order date, and lifetime spend.", concept: "Retention analysis + CTE + date filter", diff: "Project",
+        hint: "WITH last_order AS (\n  SELECT customer_id,\n         MAX(order_date)    AS last_order_date,\n         SUM(total_amount)  AS lifetime_spend\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT c.name,\n       lo.last_order_date,\n       lo.lifetime_spend\nFROM customers c\nJOIN last_order lo ON c.id = lo.customer_id\nWHERE lo.last_order_date < CURDATE() - INTERVAL 90 DAY\nORDER BY lo.last_order_date ASC;" },
+    ]
+  }
+];
+
+const TOTAL = phases.reduce((s, p) => s + p.questions.length, 0);
+let done = {};
+try { done = JSON.parse(sessionStorage.getItem('sql_ecom_done') || '{}'); } catch(e){}
+
+function save() { try { sessionStorage.setItem('sql_ecom_done', JSON.stringify(done)); } catch(e){} }
+
+let currentPhase = 0;
+
+/* ── Schema toggle ── */
+function toggleSchema() {
+  const body = document.getElementById('schema-body');
+  const txt  = document.getElementById('schema-toggle-txt');
+  const open = body.classList.toggle('open');
+  txt.textContent = open ? '[ collapse ]' : '[ expand ]';
+}
+
+/* ── Progress ── */
+function updateProgress() {
+  const n = Object.values(done).filter(Boolean).length;
+  document.getElementById('prog-count').textContent = `${n} / ${TOTAL}`;
+  document.getElementById('prog-fill').style.width  = `${(n/TOTAL*100).toFixed(1)}%`;
+}
+
+/* ── Phase nav ── */
+function renderNav() {
+  document.getElementById('phase-nav').innerHTML = phases.map((p, pi) => {
+    const d = p.questions.filter((_, qi) => done[`${pi}-${qi}`]).length;
+    return `<button class="phase-btn ${pi===currentPhase?'active':''}" onclick="setPhase(${pi})">
+      ${p.label} <span style="color:var(--muted)">·</span> ${p.sublabel}
+      <span class="done-count" style="margin-left:6px;opacity:.7">${d}/${p.questions.length}</span>
+    </button>`;
+  }).join('');
+}
+
+/* ── Hint toggle ── */
+function toggleHint(id, btn) {
+  const el = document.getElementById(id);
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? '[ hide answer ]' : '[ show hint ]';
+}
+
+/* ── Mark done ── */
+function toggleDone(key) {
+  done[key] = !done[key];
+  save();
+  renderNav();
+  renderPhase(currentPhase);
+  updateProgress();
+}
+
+/* ── Render phase ── */
+function renderPhase(pi) {
+  const p = phases[pi];
+  let html = `<div class="phase-meta">
+    <div class="phase-name">${p.title}</div>
+    <div class="phase-desc">${p.desc}</div>
+  </div>`;
+
+  if (p.isProject) {
+    html += `<div class="project-banner">
+      Each query below is a standalone dashboard deliverable. The student writes it, runs it,
+      and explains every line — including what the result means for the business.
+      Together they form a complete e-commerce analytics report.
+    </div>`;
+  }
+
+  html += '<div class="q-list">';
+  p.questions.forEach((q, qi) => {
+    const key  = `${pi}-${qi}`;
+    const isDone = !!done[key];
+    const diffClass = { Easy:'tag-easy', Medium:'tag-medium', Hard:'tag-hard', Project:'tag-project' }[q.diff] || 'tag-medium';
+    const hintId = `hint-${key}`;
+
+    html += `<div class="q-card ${isDone?'done':''}" id="card-${key}">
+      <div class="q-inner">
+        <div class="q-num">${isDone ? '✓' : qi+1}</div>
+        <div class="q-body">
+          <div class="q-tags">
+            <span class="tag tag-concept">${q.concept}</span>
+            <span class="tag ${diffClass}">${q.diff}</span>
+          </div>
+          <div class="q-text">${q.text}</div>
+          <div class="q-actions">
+            <button class="btn-hint" onclick="toggleHint('${hintId}', this)">[ show hint ]</button>
+            <button class="btn-done" onclick="toggleDone('${key}')">${isDone ? '✓ completed' : 'mark complete'}</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint-box" id="${hintId}">${q.hint}</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  document.getElementById('phase-content').innerHTML = html;
+}
+
+function setPhase(pi) {
+  currentPhase = pi;
+  renderNav();
+  renderPhase(pi);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Init ── */
+renderNav();
+renderPhase(0);
+updateProgress();
+</script>
+</body>
+</html>
