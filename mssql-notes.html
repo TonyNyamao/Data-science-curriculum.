@@ -357,7 +357,7 @@ code { font-family:var(--mono); font-size:12.5px; background:var(--bg3); padding
 
 <!-- ── Site nav ── -->
 <div style="background:#e4ddd2; border-bottom:1px solid rgba(26,21,16,0.12); padding:9px 2rem; display:flex; align-items:center; gap:1rem; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; position:sticky; top:0; z-index:100;">
-  <span style="color:#7a7060; text-transform:uppercase;">SQL Mentorship</span>
+  <span style="color:#7a7060; text-transform:uppercase;">MS SQL</span>
   <span style="color:#c0392b;">→</span>
   <a href="index.html" style="color:#1a1510; text-decoration:none; transition:color .15s;" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#1a1510'">E-commerce Curriculum</a>
   <span style="color:#c0a080; font-size:14px;">·</span>
@@ -640,13 +640,13 @@ code { font-family:var(--mono); font-size:12.5px; background:var(--bg3); padding
         <div class="cb-header"><span class="cb-title">Inserting rows</span><button class="cb-copy" onclick="copyCode(this)">copy</button></div>
         <pre><span class="cm">-- Single row</span>
 <span class="kw">INSERT INTO</span> customers (name, email, city)
-<span class="kw">VALUES</span> (<span class="str">'Alice Mwangi'</span>, <span class="str">'alice@gmail.com'</span>, <span class="str">'Nairobi'</span>);
+<span class="kw">VALUES</span> (<span class="str">'Alice Mwangi'</span>, <span class="str">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7a1b1613191f3a1d171b131654191517">[email&#160;protected]</a>'</span>, <span class="str">'Nairobi'</span>);
 
 <span class="cm">-- Multiple rows</span>
 <span class="kw">INSERT INTO</span> customers (name, email, city)
 <span class="kw">VALUES</span>
-    (<span class="str">'Bob Otieno'</span>,   <span class="str">'bob@gmail.com'</span>,  <span class="str">'Mombasa'</span>),
-    (<span class="str">'Carol Njeri'</span>,  <span class="str">'carol@yahoo.com'</span>,<span class="str">'Kisumu'</span>);
+    (<span class="str">'Bob Otieno'</span>,   <span class="str">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="97f5f8f5d7f0faf6fefbb9f4f8fa">[email&#160;protected]</a>'</span>,  <span class="str">'Mombasa'</span>),
+    (<span class="str">'Carol Njeri'</span>,  <span class="str">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2f4c4e5d40436f564e474040014c4042">[email&#160;protected]</a>'</span>,<span class="str">'Kisumu'</span>);
 
 <span class="cm">-- Insert from SELECT (copy data between tables)</span>
 <span class="kw">INSERT INTO</span> customers_archive (name, email, city, created_at)
@@ -656,7 +656,7 @@ code { font-family:var(--mono); font-size:12.5px; background:var(--bg3); padding
 
 <span class="cm">-- Capture the new IDENTITY value</span>
 <span class="kw">INSERT INTO</span> customers (name, email)
-<span class="kw">VALUES</span> (<span class="str">'Dave Kamau'</span>, <span class="str">'dave@email.com'</span>);
+<span class="kw">VALUES</span> (<span class="str">'Dave Kamau'</span>, <span class="str">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ceaaafb8ab8eaba3afa7a2e0ada1a3">[email&#160;protected]</a>'</span>);
 <span class="kw">SELECT</span> <span class="fn">SCOPE_IDENTITY</span>() <span class="kw">AS</span> new_id;</pre>
       </div>
     </div>
@@ -794,7 +794,7 @@ code { font-family:var(--mono); font-size:12.5px; background:var(--bg3); padding
 <span class="fn">LTRIM</span>(<span class="fn">RTRIM</span>(<span class="str">'  hi  '</span>))            <span class="cm">-- 'hi' (trim whitespace)</span>
 <span class="fn">TRIM</span>(<span class="str">'  hi  '</span>)                     <span class="cm">-- 'hi' (SQL Server 2017+)</span>
 <span class="fn">SUBSTRING</span>(<span class="str">'Nairobi'</span>, <span class="num">1</span>, <span class="num">3</span>)         <span class="cm">-- 'Nai'</span>
-<span class="fn">CHARINDEX</span>(<span class="str">'@'</span>, <span class="str">'user@mail.com'</span>)    <span class="cm">-- 5</span>
+<span class="fn">CHARINDEX</span>(<span class="str">'@'</span>, <span class="str">'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7f0a0c1a0d3f121e1613511c1012">[email&#160;protected]</a>'</span>)    <span class="cm">-- 5</span>
 <span class="fn">REPLACE</span>(<span class="str">'Hello World'</span>,<span class="str">'World'</span>,<span class="str">'SQL'</span>) <span class="cm">-- 'Hello SQL'</span>
 <span class="fn">CONCAT</span>(<span class="str">'Hello'</span>, <span class="str">' '</span>, <span class="str">'World'</span>)     <span class="cm">-- 'Hello World'</span>
 <span class="fn">FORMAT</span>(<span class="num">1234567</span>, <span class="str">'N0'</span>)              <span class="cm">-- '1,234,567'</span>
@@ -1633,7 +1633,7 @@ ranked <span class="kw">AS</span> (
 </main>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ── Copy to clipboard ── */
 function copyCode(btn) {
   const pre = btn.closest('.code-block').querySelector('pre');
@@ -1657,27 +1657,4 @@ window.addEventListener('scroll', () => {
 
 /* ── Active nav link on scroll ── */
 const sections = document.querySelectorAll('.section');
-const navLinks = document.querySelectorAll('.nav-link');
-
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      const id = e.target.id;
-      navLinks.forEach(l => {
-        l.classList.toggle('active', l.getAttribute('href') === '#' + id);
-      });
-    }
-  });
-}, { rootMargin: '-20% 0px -60% 0px' });
-
-sections.forEach(s => observer.observe(s));
-
-/* ── Section reveal on scroll ── */
-const revealObs = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.08 });
-
-sections.forEach(s => revealObs.observe(s));
-</script>
-</body>
-</html>
+const
